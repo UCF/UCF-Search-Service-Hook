@@ -7,12 +7,14 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 		public static
 			$option_prefix   = 'ucf_search_service_',
 			$option_defaults = array(
-				'api_base_url' => 'https://search.cm.ucf.edu/api/v1/',
-				'api_key'      => null,
-				'update_desc'  => true,
-				'update_profs' => true,
-				'desc_type'    => null,
-				'prof_type'    => null
+				'api_base_url'       => 'https://search.cm.ucf.edu/api/v1/',
+				'api_key'            => null,
+				'update_desc'        => true,
+				'update_prof'        => true,
+				'desc_type'          => null,
+				'prof_type'          => null,
+				'plan_code_field'    => 'degree_plan_code',
+				'subplan_code_field' => 'degree_subplan_code'
 			);
 
 		/**
@@ -29,7 +31,7 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 				$base_url    = self::get_option_or_default( 'api_base_url' );
 				$request_url = $base_url . 'descriptions/types/';
 
-				$items = self::fetch_api_values( $request_url );
+				$items = UCF_Search_Service_Common::fetch_api_values( $request_url );
 
 				if ( $items ) {
 					$retval = array();
@@ -59,7 +61,7 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 				$base_url       = self::get_option_or_default( 'api_base_url' );
 				$request_url = $base_url . 'profiles/types/';
 
-				$items = self::fetch_api_values( $request_url );
+				$items = UCF_Search_Service_Common::fetch_api_values( $request_url );
 
 				if ( $items ) {
 					$retval = array();
@@ -76,30 +78,6 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 		}
 
 		/**
-		 * Retrieves values via an HTTP request
-		 * @param string $url | The url of the API endpoint
-		 * @return mixed The returned value.
-		 */
-		private static function fetch_api_values( $url ) {
-			$key = self::get_option_or_default( 'api_key' );
-
-			$url .= '?' . http_build_query(
-				array(
-					'key' => $key
-				)
-			);
-
-			$retval = false;
-			$response = wp_remote_get( $url, array( 'timeout' => 5 ) );
-
-			if ( is_array( $response ) && wp_remote_retrieve_response_code( $response ) < 400 ) {
-				$retval = json_decode( wp_remote_retrieve_body( $response ) );
-			}
-
-			return $retval->results;
-		}
-
-		/**
 		 * Creates options via the WP Options API that are utilized
 		 * by the plugin. Intended to be run on plugin activation.
 		 * @return void
@@ -113,6 +91,8 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 			add_option( self::$option_prefix . 'update_prof', $defaults['update_prof'] );
 			add_option( self::$option_prefix . 'desc_type', $defaults['desc_type'] );
 			add_option( self::$option_prefix . 'prof_type', $defaults['prof_type'] );
+			add_option( self::$option_prefix . 'plan_code_field', $defaults['plan_code_field'] );
+			add_option( self::$option_prefix . 'subplan_code_field', $defaults['subplan_code_field'] );
 		}
 
 		/**
@@ -127,6 +107,8 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 			delete_option( self::$option_prefix . 'update_prof' );
 			delete_option( self::$option_prefix . 'desc_type' );
 			delete_option( self::$option_prefix . 'prof_type' );
+			delete_option( self::$option_prefix . 'plan_code_field' );
+			delete_option( self::$option_prefix . 'subplan_code_field' );
 		}
 
 		/**
@@ -138,12 +120,14 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 			$defaults = self::$option_defaults;
 
 			$configurable_defaults = array(
-				'api_base_url' => get_option( self::$option_prefix . 'api_base_url', $defaults['api_base_url'] ),
-				'api_key'      => get_option( self::$option_prefix . 'api_key', $defaults['api_key'] ),
-				'update_desc'  => get_option( self::$option_prefix . 'update_desc', $defaults['update_desc'] ),
-				'update_prof'  => get_option( self::$option_prefix . 'update_prof', $defaults['update_prof'] ),
-				'desc_type'    => get_option( self::$option_prefix . 'desc_type', $defaults['desc_type'] ),
-				'prof_type'    => get_option( self::$option_prefix . 'prof_type', $defaults['prof_type'] )
+				'api_base_url'       => get_option( self::$option_prefix . 'api_base_url', $defaults['api_base_url'] ),
+				'api_key'            => get_option( self::$option_prefix . 'api_key', $defaults['api_key'] ),
+				'update_desc'        => get_option( self::$option_prefix . 'update_desc', $defaults['update_desc'] ),
+				'update_prof'        => get_option( self::$option_prefix . 'update_prof', $defaults['update_prof'] ),
+				'desc_type'          => get_option( self::$option_prefix . 'desc_type', $defaults['desc_type'] ),
+				'prof_type'          => get_option( self::$option_prefix . 'prof_type', $defaults['prof_type'] ),
+				'plan_code_field'    => get_option( self::$option_prefix . 'plan_code_field', $defaults['plan_code_field'] ),
+				'subplan_code_field' => get_option( self::$option_prefix . 'subplan_code_field', $defaults['subplan_code_field'] )
 			);
 
 			$defaults = array_merge( $defaults, $configurable_defaults );
@@ -186,8 +170,10 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 		 * @return mixed
 		 */
 		public static function format_option( $value, $option_name ) {
-			$option_formatted = self::format_options( array( $option_name => $value ) );
-			return $option_formatted[$option_name];
+			$option_name_no_prefix = str_replace( self::$option_prefix, '', $option_name );
+
+			$option_formatted = self::format_options( array( $option_name_no_prefix => $value ) );
+			return $option_formatted[$option_name_no_prefix];
 		}
 
 		/**
@@ -199,7 +185,8 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 			$defaults = self::$option_defaults;
 
 			foreach( $defaults as $option => $default ) {
-				add_filter( 'option_{$option}', array( 'UCF_Search_Service_Config', 'format_option' ), 10, 2 );
+				$option_name = self::$option_prefix . $option;
+				add_filter( "option_{$option_name}", array( 'UCF_Search_Service_Config', 'format_option' ), 10, 2 );
 			}
 		}
 
@@ -263,7 +250,18 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 				$settings_slug
 			);
 
-			// Register fields
+			$mapping_section = 'ucf_search_service_mapping';
+
+			add_settings_section(
+				$mapping_section,
+				'Field Mappings',
+				'',
+				$settings_slug
+			);
+
+			/**
+			 * Register `General Settings`
+			 */
 			add_settings_field(
 				self::$option_prefix . 'api_base_url', // Setting name
 				'Search Service Base URL', // Setting display name
@@ -290,6 +288,9 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 				)
 			);
 
+			/**
+			 * Register `Update Descriptions` settings
+			 */
 			add_settings_field(
 				self::$option_prefix . 'update_desc', // Setting name
 				'Update Descriptions', // Setting display name
@@ -317,6 +318,9 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 				)
 			);
 
+			/**
+			 * Register `Update Profiles` settings
+			 */
 			add_settings_field(
 				self::$option_prefix . 'update_prof', // Setting name
 				'Update Profile URLs', // Setting display name
@@ -341,6 +345,35 @@ if ( ! class_exists( 'UCF_Search_Service_Config' ) ) {
 					'description' => 'The profile type to set when writing to the search service.',
 					'type'        => 'select',
 					'choices'     => self::get_profile_types()
+				)
+			);
+
+			/**
+			 * Register `Field Mappings` settings
+			 */
+			add_settings_field(
+				self::$option_prefix . 'plan_code_field', // Setting name
+				'Plan Code Meta Name', // Setting display name
+				$display_fn, // Display function
+				$settings_slug, // The settings page slug
+				$profile_section,
+				array( // Additional arguments to pass to the display function
+					'label_for'   => self::$option_prefix . 'plan_code_field',
+					'description' => 'The name of the custom meta field where `plan_code` is stored.',
+					'type'        => 'text'
+				)
+			);
+
+			add_settings_field(
+				self::$option_prefix . 'subplan_code_field', // Setting name
+				'SubPlan Code Meta Name', // Setting display name
+				$display_fn, // Display function
+				$settings_slug, // The settings page slug
+				$profile_section,
+				array( // Additional arguments to pass to the display function
+					'label_for'   => self::$option_prefix . 'subplan_code_field',
+					'description' => 'The name of the custom meta field where `subplan_code` is stored.',
+					'type'        => 'text'
 				)
 			);
 		}

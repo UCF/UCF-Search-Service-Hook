@@ -15,6 +15,7 @@ if ( ! defined( 'WPINC' ) ) {
 define( 'UCF_SEARCH_SERVICE__PLUGIN_FILE', __FILE__ );
 
 include_once 'admin/ucf-search-service-config.php';
+include_once 'includes/ucf-search-service-common.php';
 
 if ( ! function_exists( 'ucf_search_service_plugin_activation' ) ) {
 	function ucf_search_service_plugin_activation() {
@@ -31,4 +32,14 @@ if ( ! function_exists( 'ucf_search_service_plugin_deactivation' ) ) {
 
 	register_deactivation_hook( UCF_SEARCH_SERVICE__PLUGIN_FILE, 'ucf_search_service_plugin_deactivation' );
 
+}
+
+if ( ! function_exists( 'ucf_search_service_init' ) ) {
+	function ucf_search_service_init() {
+		if ( ! defined( 'WP_CLI' ) ) {
+			add_action( 'save_post', array( 'UCF_Search_Service_Common', 'on_save_post' ), 99, 1 );
+		}
+	}
+
+	add_action( 'plugins_loaded', 'ucf_search_service_init' );
 }
