@@ -38,7 +38,7 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 		 * @return mixed The returned value
 		 */
 		public static function fetch_api_value( $url, $params=array() ) {
-			$retval = self::fetch_api_values( $url, $params );
+			$retval = self::fetch_api_response( $url, $params );
 
 			/**
 			 * All responses are paged by default, so results
@@ -55,7 +55,7 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 		 * @return mixed The returned value
 		 */
 		public static function fetch_api_values( $url, $params=array() ) {
-			$retval = self::fetch_api_values( $url, $params );
+			$retval = self::fetch_api_response( $url, $params );
 
 			/**
 			 * All responses are paged by default, so results
