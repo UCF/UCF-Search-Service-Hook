@@ -45,7 +45,7 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 		 * and profile based on config options.
 		 * @param int $post_id | The id of the post to update
 		 */
-		public static function update_service_value( $post_id ) {
+		public static function update_service_values( $post_id ) {
 			$plan_meta = UCF_Search_Service_Config::get_option_or_default( 'plan_code_field' );
 			$subplan_meta = UCF_Search_Service_Config::get_option_or_default( 'subplan_code_field' );
 
@@ -266,7 +266,7 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 			if ( 'degree' !== get_post_type( $post_id ) )
 				return;
 
-			self::update_service_value( $post_id );
+			self::update_service_values( $post_id );
 		}
 	}
 }
