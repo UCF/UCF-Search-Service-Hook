@@ -5,12 +5,12 @@
 if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 	class UCF_Search_Service_Common {
 		/**
-		 * Retrieves values via an HTTP Request
+		 * Retrieves a return value via an HTTP Request
 		 * @param string $url | The url of the API endpoint
 		 * @param array $args | The argument array
 		 * @return mixed The returned value
 		 */
-		public static function fetch_api_values( $url, $params=array() ) {
+		private static function fetch_api_response( $url, $params ) {
 			if ( ! array_key_exists( 'key', $params ) ) {
 				$params['key'] = UCF_Search_Service_Config::get_option_or_default( 'api_key' );
 			}
@@ -28,6 +28,35 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 				$retval = json_decode( wp_remote_retrieve_body( $response ) );
 			}
 
+			return $retval;
+		}
+
+		/**
+		 * Retrieves a scalar value via an HTTP Request
+		 * @param string $url | The url of the API endpoint
+		 * @param array $args | The argument array
+		 * @return mixed The returned value
+		 */
+		public static function fetch_api_value( $url, $params=array() ) {
+			$retval = self::fetch_api_values( $url, $params );
+
+			/**
+			 * All responses are paged by default, so results
+			 * include a `results` object. If the request returned
+			 * an error, $retval will be false.
+			 */
+			return $retval;
+		}
+
+		/**
+		 * Retrieves values via an HTTP Request
+		 * @param string $url | The url of the API endpoint
+		 * @param array $args | The argument array
+		 * @return mixed The returned value
+		 */
+		public static function fetch_api_values( $url, $params=array() ) {
+			$retval = self::fetch_api_values( $url, $params );
+
 			/**
 			 * All responses are paged by default, so results
 			 * include a `results` object. If the request returned
@@ -44,8 +73,9 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 		 * Updates the search service with description
 		 * and profile based on config options.
 		 * @param int $post_id | The id of the post to update
+		 * @param int $program_id | The id of the program in the Search Service (optional)
 		 */
-		public static function update_service_values( $post_id ) {
+		public static function update_service_values( $post_id, $program_id=null ) {
 			$plan_meta = UCF_Search_Service_Config::get_option_or_default( 'plan_code_field' );
 			$subplan_meta = UCF_Search_Service_Config::get_option_or_default( 'subplan_code_field' );
 
@@ -54,17 +84,28 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 			$subplan_code = get_post_meta( $post_id, $subplan_meta, true );
 
 			$subplan_code = empty( $subplan_code ) ? null : $subplan_code;
-
-			$params = array(
-				'plan_code'    => $plancode,
-				'subplan_code' => $subplan_code
-			);
+			$result = null;
 
 			$base_url = UCF_Search_Service_Config::get_option_or_default( 'api_base_url' );
-			$endpoint = $base_url . 'programs/search/';
+			$endpoint = 'programs/';
 
-			$results = self::fetch_api_values( $endpoint, $params );
-			$result = self::return_verified_result( $results, $params );
+			if ( $program_id ) {
+				$endpoint .= $program_id . '/';
+				$result = self::fetch_api_value( $endpoint );
+			}
+
+			if ( ! $result ) {
+				$params = array(
+					'plan_code'    => $plancode,
+					'subplan_code' => $subplan_code
+				);
+
+				$base_url = UCF_Search_Service_Config::get_option_or_default( 'api_base_url' );
+				$endpoint = $base_url . 'programs/search/';
+
+				$results = self::fetch_api_values( $endpoint, $params );
+				$result = self::return_verified_result( $results, $params );
+			}
 
 			if ( $result ) {
 
