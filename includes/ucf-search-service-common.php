@@ -226,7 +226,7 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 				}
 			} else {
 				$request_body = array(
-					'profile_type' => $desc_type,
+					'profile_type' => $prof_type,
 					'url' => $permalink,
 					'primary' => false,
 					'program' => $result->id
