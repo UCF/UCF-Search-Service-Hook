@@ -97,8 +97,13 @@ if ( ! class_exists( 'UCF_Search_Service_Common' ) ) {
 			if ( ! $result ) {
 				$params = array(
 					'plan_code'    => $plancode,
-					'subplan_code' => $subplan_code
 				);
+
+				if ( $subplan ) {
+					$params['subplan_code'] = $subplan;
+				} else {
+					$params['subplan_code__isnull'] = True;
+				}
 
 				$base_url = UCF_Search_Service_Config::get_option_or_default( 'api_base_url' );
 				$endpoint = $base_url . 'programs/search/';
