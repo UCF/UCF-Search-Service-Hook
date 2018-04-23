@@ -12,3 +12,23 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+define( 'UCF_SEARCH_SERVICE__PLUGIN_FILE', __FILE__ );
+
+include_once 'admin/ucf-search-service-config.php';
+
+if ( ! function_exists( 'ucf_search_service_plugin_activation' ) ) {
+	function ucf_search_service_plugin_activation() {
+		UCF_Search_Service_Config::add_options();
+	}
+
+	register_activation_hook( UCF_SEARCH_SERVICE__PLUGIN_FILE, 'ucf_search_service_plugin_activation' );
+}
+
+if ( ! function_exists( 'ucf_search_service_plugin_deactivation' ) ) {
+	function ucf_search_service_plugin_deactivation() {
+		UCF_Search_Service_Config::delete_options();
+	}
+
+	register_deactivation_hook( UCF_SEARCH_SERVICE__PLUGIN_FILE, 'ucf_search_service_plugin_deactivation' );
+
+}
