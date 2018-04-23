@@ -36,7 +36,9 @@ if ( ! function_exists( 'ucf_search_service_plugin_deactivation' ) ) {
 
 if ( ! function_exists( 'ucf_search_service_init' ) ) {
 	function ucf_search_service_init() {
-		add_action( 'save_post', array( 'UCF_Search_Service_Common', 'on_save_post' ), 99, 1 );
+		if ( ! defined( 'WP_CLI' ) ) {
+			add_action( 'save_post', array( 'UCF_Search_Service_Common', 'on_save_post' ), 99, 1 );
+		}
 	}
 
 	add_action( 'plugins_loaded', 'ucf_search_service_init' );
